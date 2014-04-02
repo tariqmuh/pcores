@@ -1,0 +1,45 @@
+##############################################################################
+## Filename:          C:\Users\DSD\disparity_full_sys\pcores\MyProcessorIPLib\pcores/load_bram_v1_00_a/data/load_bram_v2_1_0.pao
+## Description:       Peripheral Analysis Order
+## Date:              Mon Mar 31 15:41:20 2014 (by Create and Import Peripheral Wizard)
+##############################################################################
+
+lib proc_common_v3_00_a proc_common_pkg vhdl
+lib proc_common_v3_00_a family_support vhdl
+lib proc_common_v3_00_a muxf_struct_f vhdl
+lib proc_common_v3_00_a dynshreg_f vhdl
+lib proc_common_v3_00_a cntr_incr_decr_addn_f vhdl
+lib proc_common_v3_00_a srl_fifo_rbu_f vhdl
+lib proc_common_v3_00_a srl_fifo_f vhdl
+lib proc_common_v3_00_a pselect_f vhdl
+lib proc_common_v3_00_a ipif_pkg vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_wr_demux vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_strb_gen vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_rdmux vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_fifo vhdl
+lib proc_common_v3_00_a counter_f vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_wr_status_cntl vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_wrdata_cntl vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_stbs_set vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_skid_buf vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_skid2mm_buf vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_rd_status_cntl vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_rddata_cntl vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_pcc vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_first_stb_offset vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_addr_cntl vhdl
+lib axi_lite_ipif_v1_01_a address_decoder vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_wr_llink vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_reset vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_rd_wr_cntlr vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_rd_llink vhdl
+lib axi_master_burst_v1_00_a axi_master_burst_cmd_status vhdl
+lib axi_lite_ipif_v1_01_a slave_attachment vhdl
+lib load_bram_v1_00_a pxconv verilog
+lib load_bram_v1_00_a PXBRAM verilog
+lib load_bram_v1_00_a fifo verilog
+lib load_bram_v1_00_a bram_dm verilog
+lib axi_master_burst_v1_00_a axi_master_burst vhdl
+lib axi_lite_ipif_v1_01_a axi_lite_ipif vhdl
+lib load_bram_v1_00_a user_logic vhdl
+lib load_bram_v1_00_a load_bram vhdl

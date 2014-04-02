@@ -1,0 +1,9 @@
+##############################################################################
+## Filename:          C:\Users\DSD\disparity_full_sys\pcores\MyProcessorIPLib\pcores/load_bram_v1_00_a/data/load_bram_v2_1_0.bbd
+## Description:       Black Box Definition
+## Date:              Mon Mar 31 15:41:20 2014 (by Create and Import Peripheral Wizard)
+##############################################################################
+
+Files
+################################################################################
+fifo.ngc,PXBRAM.ngc

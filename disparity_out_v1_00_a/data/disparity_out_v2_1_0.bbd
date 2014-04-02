@@ -1,0 +1,10 @@
+##############################################################################
+## Filename:          C:\GitHub_Files\Disparity_out\pcores/disparity_out_v5_00_a/data/disparity_out_v2_1_0.bbd
+## Description:       Black Box Definition
+## Date:              Wed Mar 26 00:59:40 2014 (by Create and Import Peripheral Wizard)
+##############################################################################
+
+Files
+################################################################################
+#disparity_out.ngc
+async_fifo_32_256.ngc

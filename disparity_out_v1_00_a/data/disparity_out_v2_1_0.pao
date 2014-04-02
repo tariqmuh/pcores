@@ -1,0 +1,12 @@
+##############################################################################
+## Filename:          C:/Fifo_DDR/pcores/disparity_out_v1_00_a/data/disparity_out_v2_1_0.pao
+## Description:       Peripheral Analysis Order
+## Date:              Wed Mar 26 02:51:40 2014 (by Create and Import Peripheral Wizard)
+##############################################################################
+
+lib proc_common_v3_00_a  all 
+lib axi_lite_ipif_v1_01_a  all 
+lib axi_master_burst_v1_00_a  all 
+lib disparity_out_v1_00_a user_logic vhdl
+lib disparity_out_v1_00_a disparity_out vhdl
+lib disparity_out_v1_00_a async_fifo_32_256 vhdl
