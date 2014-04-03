@@ -1,4 +1,10 @@
-module pxconv(
+module pxconv
+#(
+parameter VRES = 480,
+parameter HRES = 640,
+parameter BURST = 128
+)
+(
     input clk,
     input rst,
 	
@@ -18,6 +24,10 @@ module pxconv(
 	output busy,
 	output reg wnd_in_bram
     );
+	 
+	 parameter NLINES = 8;
+	 parameter FULL_BRAM = NLINES*HRES;
+	 parameter FRAME_SIZE = HRES*VRES;
 
 	wire [15:0] px_low_red, px_low_blue, px_low_green;
 	
@@ -45,9 +55,6 @@ module pxconv(
 			pxconv_to_bram_data <= 'h0;
 			pxconv_to_bram_addr <= 'h1400;
 			pxconv_to_bram_wr_en <= 1'b0;
-		//	pxconv_to_bram_hi_data <= 32'h0;
-		//	pxconv_to_bram_hi_addr <= 32'h0000;
-		//	pxconv_to_bram_hi_wr_en <= 1'b0;
 			px_cnt <= 24'b0;
 			px_cnt_d <= 24'b0;
 			row_cnt <= 24'b0;
@@ -58,10 +65,9 @@ module pxconv(
 			px_cnt_d <= px_cnt;
 			
 			pxconv_to_bram_data <= {16'b0, px_low_grey[15:0]};
-	//		pxconv_to_bram_hi_data <= {16'b0, px_hi_grey[15:0]};
 			
 			if(axi_to_pxconv_valid) begin
-				if(px_cnt == 24'h4B000) begin  //640*480 in hex
+				if(px_cnt == FRAME_SIZE) begin  //640*480 in hex
 					px_cnt <= 24'h0;
 				end
 				else begin
@@ -70,40 +76,35 @@ module pxconv(
 			end
 			if(axi_to_pxconv_valid_d) begin
 				pxconv_to_bram_wr_en <= 1'b1;
-	//			pxconv_to_bram_hi_wr_en <= 1'b1;
-				if(px_cnt_d == 32'h4B000) begin
+				if(px_cnt_d == FRAME_SIZE) begin
 					px_cnt_d <= 24'b0;
 				end
 				else begin
 					px_cnt_d <= px_cnt_d + 1;
 				end
-				//if(pxconv_to_bram_hi_addr == 32'h117f || pxconv_to_bram_low_addr == 32'h1180) begin //7*640/2 -> only check the hi addr since the high addr will match
-				if(pxconv_to_bram_addr == 'h1400) begin
+				if(pxconv_to_bram_addr == FULL_BRAM) begin
 					pxconv_to_bram_addr <= 'h0;
-				//	pxconv_to_bram_hi_addr <= 32'h1;
 				end 
 				else begin
 					pxconv_to_bram_addr <= pxconv_to_bram_addr + 1;
-				//	pxconv_to_bram_hi_addr <= pxconv_to_bram_hi_addr + 2;
 				end
 			end
 			else begin
 				pxconv_to_bram_wr_en <= 1'b0;
-				//pxconv_to_bram_hi_wr_en <= 1'b0;
 			end
 		end
 	end
 	
 	always@(posedge clk) begin
 		if(rst) begin
-			pxconv_to_axi_mst_length <= 11'h80; //256 burst is max
+			pxconv_to_axi_mst_length <= BURST; //256 burst is max
 		end
 		else begin
-			if(px_cnt < 24'h1400) begin
-				pxconv_to_axi_mst_length <= 11'h80; //256 burst is max
+			if(px_cnt < FULL_BRAM) begin
+				pxconv_to_axi_mst_length <= BURST; //256 burst is max
 			end
 			else begin
-				pxconv_to_axi_mst_length <= 11'h80; //16 burst read for regular reads
+				pxconv_to_axi_mst_length <= BURST; //16 burst read for regular reads
 			end
 		end
 	end
@@ -114,7 +115,7 @@ module pxconv(
 			row_cnt <= 24'h0;
 		end
 		else begin
-			if(px_cnt < 24'h13FF) begin //8c0 -1 = 8bf, need to stop ready_to_rd 1 cycle early.
+			if(px_cnt < FULL_BRAM -1) begin //8c0 -1 = 8bf, need to stop ready_to_rd 1 cycle early.
 				pxconv_to_axi_ready_to_rd <= 1'b1;
 			end
 			else begin
@@ -135,7 +136,7 @@ module pxconv(
 			wnd_in_bram <= 1'b0;
 		end
 		else begin
-			if(px_cnt_d >= 24'h1400) wnd_in_bram <= 1'b1;
+			if(px_cnt_d >= FULL_BRAM) wnd_in_bram <= 1'b1;
 			else wnd_in_bram <= 1'b0;
 		end
 	end

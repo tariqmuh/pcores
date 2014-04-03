@@ -127,6 +127,7 @@ entity user_logic is
 	 
 	 --// 640*480 frame with 3x3 window - 1.6sec/frame
 	 --// 640*480 frame with 7x7 window - 8.5sec/frame
+	 BURST					: integer					:= 128;
 	 window					: integer              := 7;
     -- ADD USER GENERICS ABOVE THIS LINE ---------------
 
@@ -138,9 +139,9 @@ entity user_logic is
     C_NUM_REG                      : integer              := 9;
     C_SLV_DWIDTH                   : integer              := 32;
 	 START_ADDR_REF					  : std_logic_vector		 := X"A0000000";
-	 END_ADDR_REF						  : std_logic_vector		 := X"A0095F80";
-	 START_ADDR_SEARCH				  : std_logic_vector 	 := X"A0100000";
-	 END_ADDR_SEARCH					  : std_logic_vector		 := X"A0195F80";
+	 END_ADDR_REF						  : std_logic_vector		 := X"A03A97C0";
+	 START_ADDR_SEARCH				  : std_logic_vector 	 := X"A8000000";
+	 END_ADDR_SEARCH					  : std_logic_vector		 := X"A83A97C0";
 	 BRAM_ADDR_WIDTH					  : integer					 := 13
     -- DO NOT EDIT ABOVE THIS LINE ---------------------
   );
@@ -278,6 +279,11 @@ component PXBRAM
 end component;
 
 component pxconv
+	generic(
+		HRES : integer := 640;
+		VRES : integer := 480;
+		BURST : integer := 128
+	);
 	PORT(
 		clk : in std_logic;
 		rst : in std_logic;
@@ -591,8 +597,7 @@ begin
   --mst_ip2bus_addr   <= mst_reg(7) & mst_reg(6) & mst_reg(5) & mst_reg(4);
   mst_ip2bus_be     <= X"FFFF";--mst_reg(9) & mst_reg(8);
   mst_xfer_reg_len  <= X"00040";--mst_reg(14)(3 downto 0) &  mst_reg(13) & mst_reg(12);
-  --mst_xfer_reg_len  <= pxconv_mst_length;--mst_reg(14)(3 downto 0)
-  mst_xfer_length   <= mst_xfer_reg_len(C_LENGTH_WIDTH-1 downto 0 );
+  mst_xfer_length   <= pxconv_mst_length;
 
   -- implement byte write enable for each byte slice of the master model registers
   MASTER_REG_BYTE_WR_EN : process( Bus2IP_BE, mst_reg_write_req, mst_reg_write_sel ) is
@@ -1071,6 +1076,11 @@ begin
   IP2Bus_Error <= '0';
 
   pxconv_inst_ref : pxconv 
+  generic map (
+	HRES => HRES,
+	VRES => VRES,
+	BURST => BURST
+  )
 	port map 
 	(
     clk => Bus2IP_Clk,
@@ -1089,6 +1099,11 @@ begin
 	);
 	
 pxconv_inst_search : pxconv 
+  generic map (
+	HRES => HRES,
+	VRES => VRES,
+	BURST => BURST
+  )
 	port map 
 	(
     clk => Bus2IP_Clk,
@@ -1295,11 +1310,10 @@ process(Bus2IP_Clk) begin
 						
 						if(Bus2IP_Mst_Cmplt = '1') then
 							cama_sm_state <= CAM_IDLE;
-							if (pa_wr_addr = END_ADDR_REF) then
+							if (pa_wr_addr = END_ADDR_REF - pxconv_mst_length) then
 								pa_wr_addr <= START_ADDR_REF;
 							else
-								--pa_wr_addr <= pa_wr_addr + (128*4);
-								pa_wr_addr <= pa_wr_addr + mst_xfer_length;
+								pa_wr_addr <= pa_wr_addr + pxconv_mst_length;
 							end if;
 						end if;
 						
@@ -1315,11 +1329,10 @@ process(Bus2IP_Clk) begin
 						
 						if(Bus2IP_Mst_Cmplt = '1') then
 							cama_sm_state <= CAM_IDLE;
-							if (pb_wr_addr = END_ADDR_SEARCH) then
+							if (pb_wr_addr = END_ADDR_SEARCH - pxconv_mst_length_search) then
 								pb_wr_addr <= START_ADDR_SEARCH;
 							else
-								-- pb_wr_addr <= pb_wr_addr + (128*4);
-								pb_wr_addr <= pb_wr_addr + mst_xfer_length;
+								pb_wr_addr <= pb_wr_addr + pxconv_mst_length_search;
 							end if;
 						end if;
 						
@@ -1330,7 +1343,7 @@ process(Bus2IP_Clk) begin
 		
 		end if;
 	end process;
-	
-	mst_ip2bus_addr <= pa_wr_addr when fifo_ref_sel = '1' else pb_wr_addr;
+		mst_ip2bus_addr <= pa_wr_addr when fifo_ref_sel = '1' else pb_wr_addr;
+
 
 end IMP;
