@@ -188,11 +188,12 @@ entity load_bram is
     C_NATIVE_DATA_WIDTH            : integer              := 32;
     C_LENGTH_WIDTH                 : integer              := 12;
     C_ADDR_PIPE_DEPTH              : integer              := 1;
-	 START_ADDR_REF				   : std_logic_vector	  := X"A0000000";
-	 END_ADDR_REF				   : std_logic_vector	 := X"A0095F80";
-	 START_ADDR_SEARCH			   : std_logic_vector	 := X"A0100000";
-	 END_ADDR_SEARCH			   : std_logic_vector	 := X"A0195F80";
-	 BRAM_ADDR_WIDTH				: integer					 := 13
+	 START_ADDR_REF							  : std_logic_vector					 := X"A0000000";
+	 END_ADDR_REF							  : std_logic_vector					 := X"A03A97C0";
+	 START_ADDR_SEARCH							  : std_logic_vector					 := X"A8000000";
+	 END_ADDR_SEARCH							  : std_logic_vector					 := X"A83A97C0";
+	 BURST									: integer									:= 128;
+	 BRAM_ADDR_WIDTH					  : integer					 := 13
     -- DO NOT EDIT ABOVE THIS LINE ---------------------
   );
   port
@@ -533,6 +534,7 @@ begin
 			HRES						=>	HRES,
 			BRAM_DATA_WIDTH		=>	BRAM_DATA_WIDTH,
 			BRAM_WE_WIDTH			=>	BRAM_WE_WIDTH,
+			BURST 					=> BURST,
 			
 			--// 640*480 frame with 3x3 window - 1.6sec/frame
 			--// 640*480 frame with 7x7 window - 8.5sec/frame
