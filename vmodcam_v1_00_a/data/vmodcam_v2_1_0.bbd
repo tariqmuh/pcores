@@ -1,0 +1,10 @@
+##############################################################################
+## Filename:          C:\DSD\ip_proj2\pcores/vmodcam_v1_00_a/data/vmodcam_v2_1_0.bbd
+## Description:       Black Box Definition
+## Date:              Sat Feb 08 00:24:47 2014 (by Create and Import Peripheral Wizard)
+##############################################################################
+
+Files
+################################################################################
+vmodcam.ngc
+fifo.ngc
