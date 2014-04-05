@@ -54,7 +54,7 @@ parameter BURST = 128
 	always@(posedge clk) begin
 		if(rst) begin
 			pxconv_to_bram_data <= 'h0;
-			pxconv_to_bram_addr <= 'h1400;
+			pxconv_to_bram_addr <= FULL_BRAM;
 			pxconv_to_bram_wr_en <= 1'b0;
 			px_cnt <= 24'b0;
 			px_cnt_d <= 24'b0;
