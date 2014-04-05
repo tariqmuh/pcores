@@ -1315,6 +1315,7 @@ process(Bus2IP_Clk) begin
 						
 						if(Bus2IP_Mst_Cmplt = '1') then
 							cama_sm_state <= CAM_IDLE;
+							fifo_ref_sel <= '0';
 							if (pa_wr_addr = START_ADDR_REF + (HRES*VRES*2) - pxconv_mst_length) then
 								pa_wr_addr <= START_ADDR_REF;
 							else
@@ -1334,6 +1335,7 @@ process(Bus2IP_Clk) begin
 						
 						if(Bus2IP_Mst_Cmplt = '1') then
 							cama_sm_state <= CAM_IDLE;
+							fifo_search_sel <= '0';
 							if (pb_wr_addr = START_ADDR_SEARCH + (HRES*VRES*2) - pxconv_mst_length_search) then
 								pb_wr_addr <= START_ADDR_SEARCH;
 							else

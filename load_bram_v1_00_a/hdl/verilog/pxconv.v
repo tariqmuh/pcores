@@ -36,6 +36,7 @@ parameter BURST = 128
 	reg [23:0] px_cnt;
 	reg [23:0] row_cnt;
 	reg [23:0] px_cnt_d;
+	reg [23:0] rd_cnt;
 	
 	reg [15:0] axi_to_pxconv_data_d;
 	reg axi_to_pxconv_valid_d;
@@ -54,11 +55,11 @@ parameter BURST = 128
 	always@(posedge clk) begin
 		if(rst) begin
 			pxconv_to_bram_data <= 'h0;
-			pxconv_to_bram_addr <= FULL_BRAM;
+			pxconv_to_bram_addr <= FULL_BRAM-1;
 			pxconv_to_bram_wr_en <= 1'b0;
 			px_cnt <= 24'b0;
 			px_cnt_d <= 24'b0;
-			row_cnt <= 24'b0;
+
 		end
 		else begin
 			axi_to_pxconv_data_d <= axi_to_pxconv_data;
@@ -74,16 +75,11 @@ parameter BURST = 128
 				else begin
 					px_cnt <= px_cnt + 1;
 				end
+
 			end
 			if(axi_to_pxconv_valid_d) begin
 				pxconv_to_bram_wr_en <= 1'b1;
-				if(px_cnt_d == FRAME_SIZE) begin
-					px_cnt_d <= 24'b0;
-				end
-				else begin
-					px_cnt_d <= px_cnt_d + 1;
-				end
-				if(pxconv_to_bram_addr == FULL_BRAM) begin
+				if(pxconv_to_bram_addr == FULL_BRAM-1) begin
 					pxconv_to_bram_addr <= 'h0;
 				end 
 				else begin
@@ -96,37 +92,40 @@ parameter BURST = 128
 		end
 	end
 	
-	always@(posedge clk) begin
-		if(rst) begin
-			pxconv_to_axi_mst_length <= BURST; //256 burst is max
-		end
-		else begin
-			if(px_cnt < FULL_BRAM) begin
-				pxconv_to_axi_mst_length <= BURST; //256 burst is max
-			end
-			else begin
-				pxconv_to_axi_mst_length <= BURST; //16 burst read for regular reads
-			end
-		end
-	end
+	pxconv_to_axi_mst_length <= BURST;
 	
 	always@(posedge clk) begin
 		if(rst) begin
 			pxconv_to_axi_ready_to_rd <= 1'b0;
-			row_cnt <= 24'h0;
+			rd_cnt <= HRES/BURST;
+			row_cnt <= BURST;
 		end
 		else begin
 			if(px_cnt < FULL_BRAM -1) begin //8c0 -1 = 8bf, need to stop ready_to_rd 1 cycle early.
 				pxconv_to_axi_ready_to_rd <= 1'b1;
+				rd_cnt <= HRES/BURST;
 			end
 			else begin
 
 				if(pixel_ack) begin
-					row_cnt <= row_cnt + 1;
+					rd_cnt <= 0;
+					pxconv_to_axi_ready_to_rd <= 1'b1;
+				end
+				else if(rd_cnt < HRES/BURST) begin
 					pxconv_to_axi_ready_to_rd <= 1'b1;
 				end
 				else begin
 					pxconv_to_axi_ready_to_rd <= 1'b0;
+				end
+				
+				if(axi_to_pxconv_valid) begin
+					if(row_cnt == BURST) begin
+						row_cnt <= 24'b0;
+						rd_cnt <= rd_cnt + 1;
+					end
+					else begin
+						row_cnt <= row_cnt + 1;
+					end
 				end
 			end
 		end
