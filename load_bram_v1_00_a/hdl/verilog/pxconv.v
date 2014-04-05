@@ -14,7 +14,7 @@ parameter BURST = 128
 	input pixel_ack,
 	
 	output reg pxconv_to_axi_ready_to_rd,
-	output reg [11:0] pxconv_to_axi_mst_length,
+	output [11:0] pxconv_to_axi_mst_length,
 	
 	output [0:0] pxconv_to_bram_we,
 	output reg [15:0] pxconv_to_bram_data,
@@ -92,7 +92,7 @@ parameter BURST = 128
 		end
 	end
 	
-	pxconv_to_axi_mst_length <= BURST;
+	assign pxconv_to_axi_mst_length = BURST;
 	
 	always@(posedge clk) begin
 		if(rst) begin
