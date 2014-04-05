@@ -150,6 +150,9 @@ entity user_logic is
     -- ADD USER PORTS BELOW THIS LINE ------------------
     load_bram_dout						: out std_logic_vector(31 downto 0);
 	 load_bram_wr_en_fifo				: out std_logic;
+	 load_bram_en							: in std_logic;
+	 LED_O									: out std_logic_vector(7 downto 0);
+	 SW_I										: in std_logic_vector(4 downto 0);
     -- ADD USER PORTS ABOVE THIS LINE ------------------
 
     -- DO NOT EDIT BELOW THIS LINE ---------------------
@@ -293,9 +296,9 @@ component pxconv
 		pxconv_to_axi_ready_to_rd : out std_logic;
 		pxconv_to_axi_mst_length : out std_logic_vector(C_LENGTH_WIDTH-1 downto 0);
 		pxconv_to_bram_we : out std_logic_vector(BRAM_WE_WIDTH-1 downto 0);
-		pxconv_to_bram_data : out std_logic_vector(31 downto 0);
+		pxconv_to_bram_data : out std_logic_vector(15 downto 0);
 		pxconv_to_bram_wr_en : out std_logic;
-		pxconv_to_bram_addr : out std_logic_vector(31 downto 0);
+		pxconv_to_bram_addr : out std_logic_vector(12 downto 0);
 		busy : out std_logic;
 		wnd_in_bram : out std_logic
 	);
@@ -382,9 +385,9 @@ component pxconv
   signal axi_to_pxconv_data 				 : std_logic_vector(15 downto 0);
   signal pxconv_to_axi_ready_to_rd		 : std_logic;
   signal pxconv_to_bram_we					 : std_logic_vector(BRAM_WE_WIDTH-1 downto 0);
-  signal pxconv_to_bram_data				 : std_logic_vector(31 downto 0);
+  signal pxconv_to_bram_data				 : std_logic_vector(15 downto 0);
   signal pxconv_to_bram_wr_en				 : std_logic;
-  signal pxconv_to_bram_addr				 : std_logic_vector(31 downto 0);
+  signal pxconv_to_bram_addr				 : std_logic_vector(12 downto 0);
   signal bram_busy							 : std_logic;
   signal pa_wr_addr							 : std_logic_vector(31 downto 0);
   signal wnd_in_bram							 : std_logic;
@@ -397,9 +400,9 @@ component pxconv
   signal axi_to_pxconv_data_search 				 : std_logic_vector(15 downto 0);
   signal pxconv_to_axi_ready_to_rd_search		 : std_logic;
   signal pxconv_to_bram_we_search					 : std_logic_vector(BRAM_WE_WIDTH-1 downto 0);
-  signal pxconv_to_bram_data_search				 : std_logic_vector(31 downto 0);
+  signal pxconv_to_bram_data_search				 : std_logic_vector(15 downto 0);
   signal pxconv_to_bram_wr_en_search				 : std_logic;
-  signal pxconv_to_bram_addr_search				 : std_logic_vector(31 downto 0);
+  signal pxconv_to_bram_addr_search				 : std_logic_vector(12 downto 0);
   signal bram_busy_search							 : std_logic;
   signal pb_wr_addr							 : std_logic_vector(31 downto 0);
   signal wnd_in_bram_search							 : std_logic;
@@ -421,6 +424,8 @@ signal go :  std_logic;
 signal busy_ref :  std_logic;
 signal busy_search :  std_logic;
 signal finished_row :  std_logic;
+signal load_bram_dout_led : std_logic_vector(31 downto 0);
+signal load_bram_wr_en_led : std_logic;
 --signal load_bram_dout :  std_logic_vector(31 downto 0);
 --signal load_bram_wr_en_fifo :  std_logic;
 
@@ -1185,8 +1190,8 @@ Disp_Map_Calc_inst : Disp_Map_Calc
 	busy_ref => '0',
 	busy_search => '0',
 	finished_row => finished_row,
-	din_fifo => load_bram_dout,
-	wr_en_fifo => load_bram_wr_en_fifo
+	din_fifo => load_bram_dout_led,
+	wr_en_fifo => load_bram_wr_en_led
 );
 
 go <= wnd_in_bram and wnd_in_bram_search;
@@ -1288,11 +1293,11 @@ process(Bus2IP_Clk) begin
 						
 					when CAM_IDLE => 
 							
-						if(pxconv_to_axi_ready_to_rd = '1') then
+						if(pxconv_to_axi_ready_to_rd = '1' and load_bram_en = '1') then
 								cama_sm_state <= CAMA_INIT;
 								mst_cntl_rd_req <= '1';
 								fifo_ref_sel <= '1';
-						elsif(pxconv_to_axi_ready_to_rd_search = '1') then
+						elsif(pxconv_to_axi_ready_to_rd_search = '1' and load_bram_en = '1') then
 								cama_sm_state <= CAMB_INIT;
 								mst_cntl_rd_req <= '1';
 								fifo_search_sel <= '1';
@@ -1344,6 +1349,23 @@ process(Bus2IP_Clk) begin
 		end if;
 	end process;
 		mst_ip2bus_addr <= pa_wr_addr when fifo_ref_sel = '1' else pb_wr_addr;
+		
+		load_bram_wr_en_fifo <= load_bram_wr_en_led;
+		load_bram_dout <= load_bram_dout_led;
 
+LED_O <= 	(go & mst_cntl_rd_req & fifo_ref_sel & Bus2IP_Mst_CmdAck & fifo_empty & fifo_empty_search & axi_to_pxconv_valid_search & axi_to_pxconv_valid) when SW_I(3 downto 0) = "0000" else
+				bus2ip_mstrd_d (23 downto 16) when SW_I(3 downto 0) = "0001" else
+				bus2ip_mstrd_d (15 downto 8) when SW_I(3 downto 0) = "0010" else
+				bus2ip_mstrd_d (7 downto 0) when SW_I(3 downto 0) = "0011" else
+				(load_bram_wr_en_led & load_bram_en & load_bram_dout_led(5 downto 0)) when SW_I(3 downto 0) = "0100" else
+				axi_to_pxconv_data(15 downto 8) when SW_I(3 downto 0) = "1000" else
+				axi_to_pxconv_data (7 downto 0) when SW_I(3 downto 0) = "1001" else
+				axi_to_pxconv_data_search(15 downto 8) when SW_I(3 downto 0) = "1010" else
+				axi_to_pxconv_data_search (7 downto 0) when SW_I(3 downto 0) = "1011" else
+				pa_wr_addr(31 downto 24) when SW_I(3 downto 0) = "1100" else
+				pa_wr_addr(23 downto 16) when SW_I(3 downto 0) = "1101" else
+				pa_wr_addr(15 downto 8) when SW_I(3 downto 0) = "1110" else
+				pa_wr_addr(7 downto 0) when SW_I(3 downto 0) = "1111";
+  
 
 end IMP;

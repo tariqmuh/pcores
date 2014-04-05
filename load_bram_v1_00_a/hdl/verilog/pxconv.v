@@ -17,9 +17,9 @@ parameter BURST = 128
 	output reg [11:0] pxconv_to_axi_mst_length,
 	
 	output [0:0] pxconv_to_bram_we,
-	output reg [31:0] pxconv_to_bram_data,
+	output reg [15:0] pxconv_to_bram_data,
 	output reg pxconv_to_bram_wr_en,
-	output reg [31:0] pxconv_to_bram_addr,
+	output reg [12:0] pxconv_to_bram_addr,
 	
 	output busy,
 	output reg wnd_in_bram
@@ -29,9 +29,9 @@ parameter BURST = 128
 	 parameter FULL_BRAM = NLINES*HRES;
 	 parameter FRAME_SIZE = HRES*VRES;
 
-	wire [15:0] px_low_red, px_low_blue, px_low_green;
-	
-	wire [17:0] px_low_grey;
+	wire [7:0] px_low_red, px_low_blue, px_low_green;
+	wire [8:0] px_low_add;
+	wire [7:0] px_low_grey;
 	
 	reg [23:0] px_cnt;
 	reg [23:0] row_cnt;
@@ -40,11 +40,12 @@ parameter BURST = 128
 	reg [15:0] axi_to_pxconv_data_d;
 	reg axi_to_pxconv_valid_d;
 	
-	assign px_low_red = (((axi_to_pxconv_data_d & 16'hf800) >> 11) << 3);
-	assign px_low_blue = (((axi_to_pxconv_data_d & 16'h07e0) >> 5) << 2);
-	assign px_low_green = ((axi_to_pxconv_data_d & 16'h001f) << 3);
+	assign px_low_red = {axi_to_pxconv_data_d[15:11], 3'b0};
+	assign px_low_green = {axi_to_pxconv_data_d[10:5], 2'b0};
+	assign px_low_blue = {axi_to_pxconv_data_d[4:0], 3'b0};
 	
-	assign px_low_grey = (px_low_red + px_low_blue + px_low_green) / 3;
+	assign px_low_add = (px_low_red + px_low_green + px_low_blue);
+	assign px_low_grey = px_low_add/3;
 
 	assign pxconv_to_bram_we = 4'hf;
 
@@ -64,7 +65,7 @@ parameter BURST = 128
 			axi_to_pxconv_valid_d <= axi_to_pxconv_valid;
 			px_cnt_d <= px_cnt;
 			
-			pxconv_to_bram_data <= {16'b0, px_low_grey[15:0]};
+			pxconv_to_bram_data <= {8'b0, px_low_grey};
 			
 			if(axi_to_pxconv_valid) begin
 				if(px_cnt == FRAME_SIZE) begin  //640*480 in hex

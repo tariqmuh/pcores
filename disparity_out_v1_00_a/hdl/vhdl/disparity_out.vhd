@@ -73,10 +73,10 @@ use axi_lite_ipif_v1_01_a.axi_lite_ipif;
 library axi_master_burst_v1_00_a;
 use axi_master_burst_v1_00_a.axi_master_burst;
 
-library disparity_out_v1_00_a;
-use disparity_out_v1_00_a.user_logic;
---library work;
---use work.user_logic;
+--library disparity_out_v1_00_a;
+--use disparity_out_v1_00_a.user_logic;
+library work;
+use work.user_logic;
 
 ------------------------------------------------------------------------------
 -- Entity section
@@ -161,6 +161,15 @@ entity disparity_out is
     -- ADD USER GENERICS BELOW THIS LINE ---------------
     --USER generics added here
   	DISP_DATA_PORT_SIZE	: integer := 32;
+    FIFO_RD_COUNT_WIDTH	: integer := 8;
+	
+	--address calculation generics
+  	FRAME_PIXEL_WIDTH	: integer := 640;
+  	FRAME_PIXEL_HEIGHT	: integer := 480;
+  	WMAX				: integer := 3;
+  	PIXEL_DISCARD		: integer := 68;
+  	DMAP_ADDR			: std_logic_vector := X"A0400000";
+	
     -- ADD USER GENERICS ABOVE THIS LINE ---------------
 
     -- DO NOT EDIT BELOW THIS LINE ---------------------
@@ -193,6 +202,11 @@ entity disparity_out is
   		DISP_CLK_I : in STD_LOGIC;
   		RESET_I : in STD_LOGIC;
   		DISP_EN : in STD_LOGIC;
+	
+	--ports for debugging
+		SW_I : in STD_LOGIC_VECTOR(7 downto 0);
+		LED_O : out STD_LOGIC_VECTOR(7 downto 0);
+	
     -- ADD USER PORTS ABOVE THIS LINE ------------------
 
     -- DO NOT EDIT BELOW THIS LINE ---------------------
@@ -556,8 +570,8 @@ begin
   ------------------------------------------
   -- instantiate User Logic
   ------------------------------------------
-  USER_LOGIC_I : entity disparity_out_v1_00_a.user_logic
-  --USER_LOGIC_I : entity work.user_logic
+  --USER_LOGIC_I : entity disparity_out_v1_00_a.user_logic
+  USER_LOGIC_I : entity work.user_logic
     generic map
     (
       -- MAP USER GENERICS BELOW THIS LINE ---------------
@@ -574,13 +588,15 @@ begin
     (
       -- MAP USER PORTS BELOW THIS LINE ------------------
       --USER ports mapped here
-		--DISP_D_I								=> DISP_D_I, -- not hooked up yet
-		DISP_D_I								=> X"A5A5A5A5",
-		--DISP_CLK_I							=> DISP_CLK_I,
-		DISP_CLK_I							=> ipif_Bus2IP_Clk,
+		DISP_D_I							=> DISP_D_I,
+		DISP_CLK_I							=> DISP_CLK_I,
 		RESET_I								=> RESET_I,
-		--DISP_EN								=> DISP_EN, -- not hooked up yet
-		DISP_EN								=> '1',
+		DISP_EN								=> DISP_EN,
+		
+		--debugging ports
+		SW_I => SW_I,
+		LED_O => LED_O,
+		
       -- MAP USER PORTS ABOVE THIS LINE ------------------
 
       Bus2IP_Clk                     => ipif_Bus2IP_Clk,

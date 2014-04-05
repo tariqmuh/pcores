@@ -53,6 +53,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 
 library proc_common_v3_00_a;
 use proc_common_v3_00_a.proc_common_pkg.all;
@@ -122,8 +123,19 @@ entity user_logic is
   	FIFO_RD_COUNT_WIDTH	: integer := 8;
   	FRAME_PIXEL_WIDTH	: integer := 640;
   	FRAME_PIXEL_HEIGHT	: integer := 480;
-  	DMAX			: integer := 63;
   	WMAX			: integer := 3;
+  	PIXEL_DISCARD		: integer := 68;
+	DMAP_ADDR		: std_logic_vector := X"A0400000";
+	
+	
+	--DMAP_SKIP_TOP_BYTES	: std_logic_vector := (WMAX*FRAME_PIXEL_WIDTH*2); -- for 640x480, 3840
+	--DMAP_SKIP_LEFT_BYTES	: std_logic_vector := (PIXEL_DISCARD*2); -- for 640x480, 136
+
+  	--generics for mst burst write
+	--NUM_BURST_COL16		: std_logic_vector := (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2); -- for 640x480, round down to 17
+	--LAST_BURST_SIZE		: std_logic_vector := (FRAME_PIXEL_WIDTH - PIXEL_DISCARD - (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2)*16*2)/2; -- for 640x480, 14
+	--NUM_BURST_ROW		: std_logic_vector := FRAME_PIXEL_HEIGHT - (WMAX*2); -- for 640x480, 474
+  	
 	--DISP_THREE_ROWS		: integer := FRAME_PIXEL_WIDTH*WMAX/2; --address offset for 3 rows
   	--DISP_LEFT_BORDER	: integer := (DMAX + WMAX)/2;
     -- ADD USER GENERICS ABOVE THIS LINE ---------------
@@ -145,6 +157,10 @@ entity user_logic is
   		DISP_CLK_I : in STD_LOGIC;
   		RESET_I : in STD_LOGIC;
   		DISP_EN : in STD_LOGIC;
+		
+	--debugging ports
+		SW_I : in STD_LOGIC_VECTOR(7 downto 0);
+		LED_O : out STD_LOGIC_VECTOR(7 downto 0);
     -- ADD USER PORTS ABOVE THIS LINE ------------------
 
     -- DO NOT EDIT BELOW THIS LINE ---------------------
@@ -225,6 +241,11 @@ architecture IMP of user_logic is
 	signal disp_xfer_length                : std_logic_vector(C_LENGTH_WIDTH-1 downto 0);
 	signal disp_xfer_reg_len               : std_logic_vector(19 downto 0);
 
+	signal sig_frame_pixel_width	: std_logic_vector(10 downto 0);
+	signal sig_frame_pixel_height	: std_logic_vector(10 downto 0);
+	signal sig_wmax			: std_logic_vector(1 downto 0);
+	signal sig_pixel_discard	: std_logic_vector(6 downto 0);
+
   ------------------------------------------
   -- Signals for user logic slave model s/w accessible register example
   ------------------------------------------
@@ -298,6 +319,9 @@ architecture IMP of user_logic is
   signal disp_sm_state : DISP_SM_TYPE;
 attribute SIGIS of Bus2IP_Reset   : signal is "RST";
 
+constant last_burst_len : integer := (((FRAME_PIXEL_WIDTH - PIXEL_DISCARD) - ((FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/32)*32)*2);
+--constant last_burst_addr_incr : integer := (((FRAME_PIXEL_WIDTH - PIXEL_DISCARD) - ((FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/32)*32)*2)*4;
+
 --COMPONENT async_fifo_32_64
 COMPONENT async_fifo_32_256
   PORT (
@@ -318,6 +342,26 @@ begin
 
   --USER logic implementation added here
 
+  LED_O <= (Bus2IP_Reset & DISP_CLK_I & disp_wr_en & disp_fifo_full) or X"00" when SW_I(3 downto 0) = "0000" else
+			(Bus2IP_Reset & Bus2IP_Clk & disp_rd_en & disp_wr_empty) or X"00" when SW_I(3 downto 0) = "0001" else
+			disp_rd_data_count when SW_I(3 downto 0) = "0010" else
+			disp_wr_data(7 downto 0) when SW_I(3 downto 0) = "0011" else
+			disp_wr_data(15 downto 8) when SW_I(3 downto 0) = "0100" else
+			disp_wr_data(23 downto 16) when SW_I(3 downto 0) = "0101" else
+			disp_wr_data(31 downto 24) when SW_I(3 downto 0) = "0110" else
+			disp_data_out(7 downto 0) when SW_I(3 downto 0) = "0111" else
+			disp_data_out(15 downto 8) when SW_I(3 downto 0) = "1000" else
+			disp_data_out(23 downto 16) when SW_I(3 downto 0) = "1001" else
+			disp_data_out(31 downto 24) when SW_I(3 downto 0) = "1010" else
+			disp_row_wr_count(7 downto 0) when SW_I(3 downto 0) = "1011" else
+			disp_row_wr_count(15 downto 8) when SW_I(3 downto 0) = "1100" else
+			disp_col_wr_count(6 downto 0) or X"00" when SW_I(3 downto 0) = "1101";
+
+  sig_frame_pixel_width <= STD_LOGIC_VECTOR(TO_UNSIGNED(FRAME_PIXEL_WIDTH, 11));
+  sig_frame_pixel_height <= STD_LOGIC_VECTOR(TO_UNSIGNED(FRAME_PIXEL_HEIGHT, 11));
+  sig_wmax <= STD_LOGIC_VECTOR(TO_UNSIGNED(WMAX, 2));
+  sig_pixel_discard <= STD_LOGIC_VECTOR(TO_UNSIGNED(PIXEL_DISCARD, 7));
+			
   ------------------------------------------
   -- Example code to read/write user logic slave model s/w accessible registers
   -- 
@@ -973,7 +1017,8 @@ DISP_FIFO : async_fifo_32_256
 					disp_sm_state <= DISP_IDLE;
 					mst_cntl_wr_req <= '0';
 					--disp_wr_addr <= slv_reg0 + X"3C0"; --DISP_THREE_ROWS;
-					disp_wr_addr <= X"A0400F88"; --DISP_THREE_ROWS and 68 pixels;
+					--disp_wr_addr <= X"A0400F88"; --DISP_THREE_ROWS and 68 pixels;
+					disp_wr_addr <= DMAP_ADDR + (WMAX*FRAME_PIXEL_WIDTH*2) + (PIXEL_DISCARD*2);
 					disp_row_wr_count <= (others => '0');
 					disp_col_wr_count <= (others => '0');
 					disp_enable <= '0';
@@ -982,20 +1027,26 @@ DISP_FIFO : async_fifo_32_256
 
 					when DISP_IDLE =>
 						-- in each row, the first 68 pixels are discarded, starting from the 69th pixel, calculate disparity until end of row
-						if(disp_col_wr_count < X"11") and (disp_rd_data_count >= X"10") then
+						--if(disp_col_wr_count < X"11") and (disp_rd_data_count >= X"10") then
+						if(disp_col_wr_count < ((FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2))) and (disp_rd_data_count >= X"10") then
 							-- first 17 bursts 16 (64bytes) = 544 pixels
 							disp_sm_state <= DISP_INIT;
 							mst_cntl_wr_req <= '1';
 							disp_enable <= '1';
 							--burst 16
 							disp_xfer_reg_len <= X"00040"; -- 64 bytes => 16x4bytes
-						elsif (disp_col_wr_count = X"11") and (disp_rd_data_count >= X"E") then
+						--elsif (disp_col_wr_count = X"11") and (disp_rd_data_count >= X"E") then
+						elsif (disp_col_wr_count = ((FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2))) and (disp_rd_data_count >= (FRAME_PIXEL_WIDTH - PIXEL_DISCARD - (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2)*16*2)/2) then
 							-- the 18th burst 14 (56bytes) = 28 pixels
 							disp_sm_state <= DISP_INIT;
 							mst_cntl_wr_req <= '1';
 							disp_enable <= '1';
 							--only burst 14
-							disp_xfer_reg_len <= X"00038"; -- 56 bytes => 14x4bytes
+							--disp_xfer_reg_len <= X"00038"; -- 56 bytes => 14x4bytes
+							--disp_xfer_reg_len <= ((FRAME_PIXEL_WIDTH - PIXEL_DISCARD - (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2)*16*2)/2)*4; -- 56 bytes => 14x4bytes
+							--disp_xfer_reg_len <= TO_UNSIGNED((((FRAME_PIXEL_WIDTH - PIXEL_DISCARD) - ((FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/32)*32)*2), 20);
+							--disp_xfer_reg_len <= (others => '0') or ((sig_frame_pixel_width - sig_pixel_discard) - (integer((sig_frame_pixel_width - sig_pixel_discard)/32)*32)*2);
+							disp_xfer_reg_len <= std_logic_vector(to_unsigned(last_burst_len, 20));
 						else
 							disp_sm_state <= DISP_IDLE;
 						end if;
@@ -1017,20 +1068,27 @@ DISP_FIFO : async_fifo_32_256
 							--	disp_wr_addr <= disp_wr_addr + 64;
 							--end if;
 
-							if (disp_col_wr_count = X"11") and (disp_row_wr_count = X"1D9") then --computed to end of frame
+							if (disp_col_wr_count = (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2)) and (disp_row_wr_count = FRAME_PIXEL_HEIGHT - (WMAX*2)) then --computed to end of frame
+							--if (disp_col_wr_count = X"11") and (disp_row_wr_count = X"1D9") then --computed to end of frame
 								--disp_wr_addr <= slv_reg0 + X"3C0"; --DISP_THREE_ROWS;
-								disp_wr_addr <= X"A0400F88"; --DISP_THREE_ROWS and 68 pixels;
+								--disp_wr_addr <= X"A0400F88"; --DISP_THREE_ROWS and 68 pixels;
+								disp_wr_addr <= DMAP_ADDR + WMAX*FRAME_PIXEL_WIDTH*2 + (PIXEL_DISCARD*2);
 								disp_col_wr_count <= (others => '0');
 								disp_row_wr_count <= (others => '0');
-							elsif (disp_col_wr_count = X"11") and (disp_row_wr_count < X"1D9") then --computed to end of row
-								disp_wr_addr <= disp_wr_addr + X"C0"; --56 + 136 pixels to skip for --DISP_LEFT_BORDER;
+							--elsif (disp_col_wr_count = X"11") and (disp_row_wr_count < X"1D9") then --computed to end of row
+							elsif (disp_col_wr_count = (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2)) and (disp_row_wr_count < FRAME_PIXEL_HEIGHT - (WMAX*2)) then --computed to end of row
+								--disp_wr_addr <= disp_wr_addr + X"C0"; --56 + 136 pixels to skip for --DISP_LEFT_BORDER;
+								--disp_wr_addr <= disp_wr_addr + (PIXEL_DISCARD*2) + (FRAME_PIXEL_WIDTH - PIXEL_DISCARD - (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2)*16*2)/2*2;
+								disp_wr_addr <= disp_wr_addr + (PIXEL_DISCARD*2) + std_logic_vector(to_unsigned(last_burst_len, 20));
 								disp_col_wr_count <= (others => '0');
 								disp_row_wr_count <= disp_row_wr_count + X"1";
-							elsif (disp_col_wr_count < X"11") and (disp_row_wr_count < X"1D9") then
+							--elsif (disp_col_wr_count < X"11") and (disp_row_wr_count < X"1D9") then
+							elsif (disp_col_wr_count < (FRAME_PIXEL_WIDTH - PIXEL_DISCARD)/(16*2)) and (disp_row_wr_count < FRAME_PIXEL_HEIGHT - (WMAX*2)) then
 								disp_wr_addr <= disp_wr_addr + X"40"; --64;
 								disp_col_wr_count <= disp_col_wr_count + X"1";
 							else --not good
-								disp_wr_addr <= X"A0400F88"; --DISP_THREE_ROWS and 68 pixels;
+								--disp_wr_addr <= X"A0400F88"; --DISP_THREE_ROWS and 68 pixels;
+								disp_wr_addr <= DMAP_ADDR + WMAX*FRAME_PIXEL_WIDTH*2 + (PIXEL_DISCARD*2);
 								--disp_wr_addr <= slv_reg0 + X"3C0"; --DISP_THREE_ROWS;
 								disp_col_wr_count <= (others => '0');
 								disp_row_wr_count <= (others => '0');
