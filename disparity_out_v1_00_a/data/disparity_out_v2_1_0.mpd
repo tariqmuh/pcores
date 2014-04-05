@@ -112,7 +112,7 @@ PORT DISP_D_I = "", DIR = I, VEC = [31:0]
 PORT DISP_CLK_I = "", DIR = I
 PORT RESET_I = "", DIR = I
 PORT DISP_EN = "", DIR = I
-PORT SW_I = "", DIR = I
-PORT LED_O = "", DIR = O
+PORT SW_I = "", DIR = I, VEC = [7:0]
+PORT LED_O = "", DIR = O, VEC = [7:0]
 
 END
