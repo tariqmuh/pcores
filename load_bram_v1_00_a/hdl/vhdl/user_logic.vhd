@@ -140,7 +140,7 @@ entity user_logic is
     C_SLV_DWIDTH                   : integer              := 32;
 	 START_ADDR_REF					  : std_logic_vector		 := X"A0000000";
 	 END_ADDR_REF						  : std_logic_vector		 := X"A03A97C0";
-	 START_ADDR_SEARCH				  : std_logic_vector 	 := X"A8000000";
+	 START_ADDR_SEARCH				  : std_logic_vector 	 := X"A0100000";
 	 END_ADDR_SEARCH					  : std_logic_vector		 := X"A83A97C0";
 	 BRAM_ADDR_WIDTH					  : integer					 := 13
     -- DO NOT EDIT ABOVE THIS LINE ---------------------
@@ -426,6 +426,9 @@ signal busy_search :  std_logic;
 signal finished_row :  std_logic;
 signal load_bram_dout_led : std_logic_vector(31 downto 0);
 signal load_bram_wr_en_led : std_logic;
+signal fifo_full : std_logic;
+signal fifo_rd_en : std_logic;
+signal fifo_search_rd_en : std_logic;
 --signal load_bram_dout :  std_logic_vector(31 downto 0);
 --signal load_bram_wr_en_fifo :  std_logic;
 
@@ -1048,9 +1051,9 @@ begin
       rst      => Bus2IP_Reset,
       wr_en => fifo_ref_wr_en,
       din    => Bus2IP_MstRd_d,
-      rd_en  => axi_to_pxconv_valid,
+      rd_en  => fifo_rd_en,
       dout   => fifo_data_out,
-      full  => open,
+      full  => fifo_full,
       empty => fifo_empty
     );
 	 
@@ -1063,7 +1066,7 @@ begin
       rst      => Bus2IP_Reset,
       wr_en => fifo_search_wr_en,
       din    => Bus2IP_MstRd_d,
-      rd_en  => axi_to_pxconv_valid_search,
+      rd_en  => fifo_search_rd_en,
       dout   => fifo_data_out_search,
       full  => open,
       empty => fifo_empty_search
@@ -1200,6 +1203,7 @@ process(Bus2IP_Clk) begin
 	if Rising_Edge(Bus2IP_Clk) then
 			if ( Bus2IP_Resetn = '0' ) then
 					axi_to_pxconv_valid <= '0';
+					fifo_rd_en <= '0';
 			else
 				
 				case read_fifo_state is
@@ -1209,11 +1213,13 @@ process(Bus2IP_Clk) begin
 						if(fifo_empty = '0') then
 								read_fifo_state <= SEND_LOW_PIXEL;
 								axi_to_pxconv_valid <= '1';
+								fifo_rd_en <= '1';
 								axi_to_pxconv_data <= fifo_data_out(15 downto 0); 
 						end if;
 						
 					when SEND_LOW_PIXEL =>
 							axi_to_pxconv_valid <= '1';
+							fifo_rd_en <= '0';
 							axi_to_pxconv_data <= fifo_data_out(31 downto 16); 
 							read_fifo_state <= SEND_HI_PIXEL;
 						
@@ -1223,10 +1229,12 @@ process(Bus2IP_Clk) begin
 						if(fifo_empty = '0') then
 							read_fifo_state <= SEND_LOW_PIXEL;
 							axi_to_pxconv_valid <= '1';
+							fifo_rd_en <= '1';
 							axi_to_pxconv_data <= fifo_data_out(15 downto 0); 
 						else							
 							read_fifo_state <= READ_FIFO_IDLE;
 							axi_to_pxconv_valid <= '0';
+							fifo_rd_en <= '0';
 						end if;
 						
 					when others => 
@@ -1241,6 +1249,7 @@ process(Bus2IP_Clk) begin
 		if Rising_Edge(Bus2IP_Clk) then
 			if ( Bus2IP_Resetn = '0' ) then
 					axi_to_pxconv_valid_search <= '0';
+					fifo_search_rd_en <= '0';
 			else
 				
 				case read_fifo_state_search is
@@ -1250,11 +1259,13 @@ process(Bus2IP_Clk) begin
 						if(fifo_empty_search = '0') then
 								read_fifo_state_search <= SEND_LOW_PIXEL;
 								axi_to_pxconv_valid_search <= '1';
+								fifo_search_rd_en <= '1';
 								axi_to_pxconv_data_search <= fifo_data_out_search(15 downto 0); 
 						end if;
 						
 					when SEND_LOW_PIXEL =>
 							axi_to_pxconv_valid_search <= '1';
+							fifo_search_rd_en <= '0';
 							axi_to_pxconv_data_search <= fifo_data_out_search(31 downto 16); 
 							read_fifo_state_search <= SEND_HI_PIXEL;
 						
@@ -1264,10 +1275,12 @@ process(Bus2IP_Clk) begin
 						if(fifo_empty_search = '0') then
 							read_fifo_state_search <= SEND_LOW_PIXEL;
 							axi_to_pxconv_valid_search <= '1';
+							fifo_search_rd_en <= '1';
 							axi_to_pxconv_data_search <= fifo_data_out_search(15 downto 0); 
 						else							
 							read_fifo_state_search <= READ_FIFO_IDLE;
 							axi_to_pxconv_valid_search <= '0';
+							fifo_search_rd_en <= '0';
 						end if;
 						
 					when others => 
@@ -1297,10 +1310,10 @@ process(Bus2IP_Clk) begin
 								cama_sm_state <= CAMA_INIT;
 								mst_cntl_rd_req <= '1';
 								fifo_ref_sel <= '1';
-						elsif(pxconv_to_axi_ready_to_rd_search = '1' and load_bram_en = '1') then
-								cama_sm_state <= CAMB_INIT;
-								mst_cntl_rd_req <= '1';
-								fifo_search_sel <= '1';
+					--	elsif(pxconv_to_axi_ready_to_rd_search = '1' and load_bram_en = '1') then
+					--			cama_sm_state <= CAMB_INIT;
+					--			mst_cntl_rd_req <= '1';
+					--			fifo_search_sel <= '1';
 						end if;
 						
 					when CAMA_INIT =>
@@ -1314,8 +1327,11 @@ process(Bus2IP_Clk) begin
 					when CAMA_GO =>
 						
 						if(Bus2IP_Mst_Cmplt = '1') then
-							cama_sm_state <= CAM_IDLE;
+							--cama_sm_state <= CAM_IDLE;
+							cama_sm_state <= CAMB_INIT;
 							fifo_ref_sel <= '0';
+							mst_cntl_rd_req <= '1';
+							fifo_search_sel <= '1';
 							if (pa_wr_addr = START_ADDR_REF + (HRES*VRES*2) - pxconv_mst_length) then
 								pa_wr_addr <= START_ADDR_REF;
 							else
