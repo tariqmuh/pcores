@@ -190,7 +190,7 @@ entity load_bram is
     C_ADDR_PIPE_DEPTH              : integer              := 1;
 	 START_ADDR_REF							  : std_logic_vector					 := X"A0000000";
 	 END_ADDR_REF							  : std_logic_vector					 := X"A03A97C0";
-	 START_ADDR_SEARCH							  : std_logic_vector					 := X"A8000000";
+	 START_ADDR_SEARCH							  : std_logic_vector					 := X"A0100000";
 	 END_ADDR_SEARCH							  : std_logic_vector					 := X"A83A97C0";
 	 BURST									: integer									:= 128;
 	 BRAM_ADDR_WIDTH					  : integer					 := 13
@@ -391,6 +391,7 @@ architecture IMP of load_bram is
   signal user_IP2Bus_WrAck              : std_logic;
   signal user_IP2Bus_Error              : std_logic;
   signal load_bram_en						 : std_logic;
+  signal reset_signal						 : std_logic;
 
 begin
 
@@ -525,6 +526,7 @@ begin
     );
 
 	load_bram_en <= SW_I(4);
+	reset_signal <= load_bram_en and ipif_Bus2IP_Resetn;
 
   ------------------------------------------
   -- instantiate User Logic
@@ -569,7 +571,7 @@ begin
       -- MAP USER PORTS ABOVE THIS LINE ------------------
 
       Bus2IP_Clk                     => ipif_Bus2IP_Clk,
-      Bus2IP_Resetn                  => ipif_Bus2IP_Resetn,
+      Bus2IP_Resetn                  => reset_signal,
       Bus2IP_Data                    => ipif_Bus2IP_Data,
       Bus2IP_BE                      => ipif_Bus2IP_BE,
       Bus2IP_RdCE                    => user_Bus2IP_RdCE,

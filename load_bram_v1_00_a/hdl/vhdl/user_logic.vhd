@@ -285,7 +285,8 @@ component pxconv
 	generic(
 		HRES : integer := 640;
 		VRES : integer := 480;
-		BURST : integer := 128
+		BURST : integer := 128;
+		WINDOW : integer := 7
 	);
 	PORT(
 		clk : in std_logic;
@@ -1087,7 +1088,8 @@ begin
   generic map (
 	HRES => HRES,
 	VRES => VRES,
-	BURST => BURST
+	BURST => BURST,
+	WINDOW => window
   )
 	port map 
 	(
@@ -1110,7 +1112,8 @@ pxconv_inst_search : pxconv
   generic map (
 	HRES => HRES,
 	VRES => VRES,
-	BURST => BURST
+	BURST => BURST,
+	WINDOW => window
   )
 	port map 
 	(

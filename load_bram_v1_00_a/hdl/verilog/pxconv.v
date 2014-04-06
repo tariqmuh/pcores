@@ -2,7 +2,8 @@ module pxconv
 #(
 parameter VRES = 480,
 parameter HRES = 640,
-parameter BURST = 128
+parameter BURST = 128,
+parameter WINDOW = 7
 )
 (
     input clk,
@@ -29,6 +30,7 @@ parameter BURST = 128
 	 parameter FULL_BRAM = NLINES*HRES;
 	 parameter FRAME_SIZE = HRES*VRES;
 	 parameter PIXELS_PER_BURST = BURST/2;
+	 parameter NUM_ROW_ACKS = VRES - (WINDOW-1);
 
 	wire [7:0] px_low_red, px_low_blue, px_low_green;
 	wire [8:0] px_low_add;
@@ -39,6 +41,7 @@ parameter BURST = 128
 	reg [23:0] px_cnt_d;
 	reg [23:0] rd_cnt;
 	reg fill_win;
+	reg [23:0] ack_cnt;
 	
 	reg [15:0] axi_to_pxconv_data_d;
 	reg axi_to_pxconv_valid_d;
@@ -70,14 +73,18 @@ parameter BURST = 128
 			
 			pxconv_to_bram_data <= {8'b0, px_low_grey};
 			
+			
 			if(px_cnt >= FULL_BRAM) begin
 				fill_win <= 1'b0;
+			end
+			else if(ack_cnt == NUM_ROW_ACKS - 1) begin
+				fill_win <= 1'b1;
 			end
 			
 			if(axi_to_pxconv_valid) begin
 				if(px_cnt == FRAME_SIZE-1) begin  //640*480 in hex
 					px_cnt <= 24'h0;
-					fill_win <= 1'b1;
+					//fill_win <= 1'b1;
 				end
 				else begin
 					px_cnt <= px_cnt + 1'b1;
@@ -108,6 +115,7 @@ parameter BURST = 128
 			rd_cnt <= HRES/PIXELS_PER_BURST;
 			//row_cnt <= PIXELS_PER_BURST;
 			row_cnt <= 'b0;
+			ack_cnt <= 0;
 		end
 		else begin
 			if(fill_win) begin
@@ -133,6 +141,12 @@ parameter BURST = 128
 				if(pixel_ack) begin
 					rd_cnt <= 0;
 					pxconv_to_axi_ready_to_rd <= 1'b1;
+					if(ack_cnt == NUM_ROW_ACKS-1) begin
+						ack_cnt <= 0;
+					end
+					else begin
+						ack_cnt <= ack_cnt + 1;
+					end
 				end
 				
 				else if(rd_cnt < HRES/PIXELS_PER_BURST) begin
