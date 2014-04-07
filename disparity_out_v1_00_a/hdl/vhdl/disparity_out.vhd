@@ -206,6 +206,7 @@ entity disparity_out is
 	--ports for debugging
 		SW_I : in STD_LOGIC_VECTOR(7 downto 0);
 		LED_O : out STD_LOGIC_VECTOR(7 downto 0);
+		ASYNC_RESET : in std_logic;
 	
     -- ADD USER PORTS ABOVE THIS LINE ------------------
 
@@ -592,10 +593,12 @@ begin
 		DISP_CLK_I							=> DISP_CLK_I,
 		RESET_I								=> RESET_I,
 		DISP_EN								=> DISP_EN,
+		ASYNC_RESET => ASYNC_RESET,
 		
 		--debugging ports
 		SW_I => SW_I,
 		LED_O => LED_O,
+
 		
       -- MAP USER PORTS ABOVE THIS LINE ------------------
 

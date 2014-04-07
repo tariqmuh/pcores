@@ -157,7 +157,7 @@ entity user_logic is
   		DISP_CLK_I : in STD_LOGIC;
   		RESET_I : in STD_LOGIC;
   		DISP_EN : in STD_LOGIC;
-		
+		ASYNC_RESET : in std_logic;
 	--debugging ports
 		SW_I : in STD_LOGIC_VECTOR(7 downto 0);
 		LED_O : out STD_LOGIC_VECTOR(7 downto 0);
@@ -315,6 +315,9 @@ architecture IMP of user_logic is
   signal mst_fifo_valid_write_xfer      : std_logic;
   signal mst_fifo_valid_read_xfer       : std_logic;
   signal Bus2IP_Reset                   : std_logic;
+  
+  signal reset_signal						 : std_logic;
+  
   type DISP_SM_TYPE is (DISP_IDLE, DISP_INIT, DISP_GO);
   signal disp_sm_state : DISP_SM_TYPE;
 attribute SIGIS of Bus2IP_Reset   : signal is "RST";
@@ -341,6 +344,8 @@ END COMPONENT;
 begin
 
   --USER logic implementation added here
+  
+  reset_signal <= Bus2IP_Reset or (not ASYNC_RESET);
 
   LED_O <= (Bus2IP_Reset & DISP_CLK_I & disp_wr_en & disp_fifo_full) or X"00" when SW_I(3 downto 0) = "0000" else
 			(Bus2IP_Reset & Bus2IP_Clk & disp_rd_en & disp_wr_empty) or X"00" when SW_I(3 downto 0) = "0001" else
@@ -983,7 +988,7 @@ begin
 --DISP_FIFO : async_fifo_32_64
 DISP_FIFO : async_fifo_32_256
   PORT MAP (
-    rst => Bus2IP_Reset,
+    rst => reset_signal,
     wr_clk => DISP_CLK_I,
     rd_clk => Bus2IP_Clk,
     din => disp_wr_data,
@@ -1002,7 +1007,7 @@ DISP_FIFO : async_fifo_32_256
 	BURST_WRITE_EN : process(DISP_CLK_I) is
 	begin
 		if Rising_Edge(DISP_CLK_I) then
-			if (Bus2IP_Resetn = '0' ) then
+			if (reset_signal = '1' ) then
 				disp_wr_en <= '0';
 			else
 				disp_wr_en <= DISP_EN;
@@ -1013,7 +1018,7 @@ DISP_FIFO : async_fifo_32_256
 	BURST_WRITE : process(Bus2IP_Clk) is
 	begin
 		if Rising_Edge(Bus2IP_Clk) then
-			if ( Bus2IP_Resetn = '0' ) then
+			if ( reset_signal = '1' ) then
 					disp_sm_state <= DISP_IDLE;
 					mst_cntl_wr_req <= '0';
 					--disp_wr_addr <= slv_reg0 + X"3C0"; --DISP_THREE_ROWS;
