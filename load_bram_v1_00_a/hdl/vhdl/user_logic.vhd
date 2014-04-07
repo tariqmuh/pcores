@@ -152,7 +152,7 @@ entity user_logic is
 	 load_bram_wr_en_fifo				: out std_logic;
 	 load_bram_en							: in std_logic;
 	 LED_O									: out std_logic_vector(7 downto 0);
-	 SW_I										: in std_logic_vector(4 downto 0);
+	 SW_I										: in std_logic_vector(3 downto 0);
     -- ADD USER PORTS ABOVE THIS LINE ------------------
 
     -- DO NOT EDIT BELOW THIS LINE ---------------------
@@ -430,6 +430,7 @@ signal load_bram_wr_en_led : std_logic;
 signal fifo_full : std_logic;
 signal fifo_rd_en : std_logic;
 signal fifo_search_rd_en : std_logic;
+signal reset_signal : std_logic;
 --signal load_bram_dout :  std_logic_vector(31 downto 0);
 --signal load_bram_wr_en_fifo :  std_logic;
 
@@ -1049,7 +1050,7 @@ begin
     (
       wr_clk        => Bus2IP_Clk,
 		rd_clk 		=> Bus2IP_Clk,
-      rst      => Bus2IP_Reset,
+      rst      => reset_signal,
       wr_en => fifo_ref_wr_en,
       din    => Bus2IP_MstRd_d,
       rd_en  => fifo_rd_en,
@@ -1064,7 +1065,7 @@ begin
     (
       wr_clk        => Bus2IP_Clk,
 		rd_clk 		=> Bus2IP_Clk,
-      rst      => Bus2IP_Reset,
+      rst      => reset_signal,
       wr_en => fifo_search_wr_en,
       din    => Bus2IP_MstRd_d,
       rd_en  => fifo_search_rd_en,
@@ -1083,6 +1084,8 @@ begin
   IP2Bus_WrAck <= slv_write_ack or mst_write_ack;
   IP2Bus_RdAck <= slv_read_ack or mst_read_ack;
   IP2Bus_Error <= '0';
+  
+  reset_signal <= Bus2IP_Reset or (not load_bram_en);
 
   pxconv_inst_ref : pxconv 
   generic map (
@@ -1094,7 +1097,7 @@ begin
 	port map 
 	(
     clk => Bus2IP_Clk,
-    rst => Bus2IP_Reset,
+    rst => reset_signal,
 	 axi_to_pxconv_data => axi_to_pxconv_data,
 	 axi_to_pxconv_valid => axi_to_pxconv_valid,
 	 pixel_ack => finished_row,
@@ -1118,7 +1121,7 @@ pxconv_inst_search : pxconv
 	port map 
 	(
     clk => Bus2IP_Clk,
-    rst => Bus2IP_Reset,
+    rst => reset_signal,
 	 axi_to_pxconv_data => axi_to_pxconv_data_search,
 	 axi_to_pxconv_valid => axi_to_pxconv_valid_search,
 	 pixel_ack => finished_row,
@@ -1182,7 +1185,7 @@ Disp_Map_Calc_inst : Disp_Map_Calc
 	window					=>	window
 	)
 	PORT MAP (
-	reset => Bus2IP_Reset,
+	reset => reset_signal,
 	clk => Bus2IP_Clk,
 	en_search => en_search,
 	we_search => we_search,
@@ -1200,11 +1203,11 @@ Disp_Map_Calc_inst : Disp_Map_Calc
 	wr_en_fifo => load_bram_wr_en_led
 );
 
-go <= wnd_in_bram and wnd_in_bram_search;
+go <= (wnd_in_bram and wnd_in_bram_search) when (reset_signal = '0') else '0';
 
 process(Bus2IP_Clk) begin
 	if Rising_Edge(Bus2IP_Clk) then
-			if ( Bus2IP_Resetn = '0' ) then
+			if ( reset_signal = '1') then
 					axi_to_pxconv_valid <= '0';
 					fifo_rd_en <= '0';
 			else
@@ -1250,7 +1253,7 @@ process(Bus2IP_Clk) begin
 	
 	process(Bus2IP_Clk) begin
 		if Rising_Edge(Bus2IP_Clk) then
-			if ( Bus2IP_Resetn = '0' ) then
+			if ( reset_signal = '1' ) then
 					axi_to_pxconv_valid_search <= '0';
 					fifo_search_rd_en <= '0';
 			else
@@ -1296,7 +1299,7 @@ process(Bus2IP_Clk) begin
 
 	process(Bus2IP_Clk) begin
 		if Rising_Edge(Bus2IP_Clk) then
-			if ( Bus2IP_Resetn = '0' ) then
+			if ( reset_signal = '1' ) then
 					cama_sm_state <= CAM_IDLE;
 					mst_cntl_rd_req <= '0';
 					pa_wr_addr <= START_ADDR_REF;
@@ -1309,7 +1312,7 @@ process(Bus2IP_Clk) begin
 						
 					when CAM_IDLE => 
 							
-						if(pxconv_to_axi_ready_to_rd = '1' and load_bram_en = '1') then
+						if(pxconv_to_axi_ready_to_rd = '1') then
 								cama_sm_state <= CAMA_INIT;
 								mst_cntl_rd_req <= '1';
 								fifo_ref_sel <= '1';

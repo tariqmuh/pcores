@@ -202,7 +202,8 @@ entity load_bram is
     load_bram_dout						: out std_logic_vector(31 downto 0);
 	 load_bram_wr_en_fifo				: out std_logic;
 	 LED_O									: out std_logic_vector(7 downto 0);
-	 SW_I										: in std_logic_vector(4 downto 0);
+	 SW_I										: in std_logic_vector(3 downto 0);
+	 ASYNC_RESET							: in std_logic;
     -- ADD USER PORTS ABOVE THIS LINE ------------------
 
     -- DO NOT EDIT BELOW THIS LINE ---------------------
@@ -391,7 +392,6 @@ architecture IMP of load_bram is
   signal user_IP2Bus_WrAck              : std_logic;
   signal user_IP2Bus_Error              : std_logic;
   signal load_bram_en						 : std_logic;
-  signal reset_signal						 : std_logic;
 
 begin
 
@@ -525,8 +525,7 @@ begin
       bus2ip_mstwr_dst_dsc_n         => ipif_bus2ip_mstwr_dst_dsc_n
     );
 
-	load_bram_en <= SW_I(4);
-	reset_signal <= load_bram_en and ipif_Bus2IP_Resetn;
+	load_bram_en <= ASYNC_RESET;
 
   ------------------------------------------
   -- instantiate User Logic
@@ -571,7 +570,7 @@ begin
       -- MAP USER PORTS ABOVE THIS LINE ------------------
 
       Bus2IP_Clk                     => ipif_Bus2IP_Clk,
-      Bus2IP_Resetn                  => reset_signal,
+      Bus2IP_Resetn                  => ipif_Bus2IP_Resetn,
       Bus2IP_Data                    => ipif_Bus2IP_Data,
       Bus2IP_BE                      => ipif_Bus2IP_BE,
       Bus2IP_RdCE                    => user_Bus2IP_RdCE,
