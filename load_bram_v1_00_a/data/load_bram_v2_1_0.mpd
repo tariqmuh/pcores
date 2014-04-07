@@ -59,7 +59,7 @@ PARAMETER C_M_AXI_PROTOCOL = AXI4, TYPE = NON_HDL, ASSIGNMENT = CONSTANT, DT = S
 ## Ports
 PORT load_bram_dout = "", DIR = O, VEC = [31:0]
 PORT load_bram_wr_en_fifo = "", DIR = O
-PORT SW_I = "", DIR = I, VEC = [4:0]
+PORT SW_I = "", DIR = I, VEC = [3:0]
 PORT LED_O = "", DIR = O, VEC = [7:0]
 PORT ASYNC_RESET = "", DIR = I
 PORT S_AXI_ACLK = "", DIR = I, SIGIS = CLK, BUS = S_AXI
