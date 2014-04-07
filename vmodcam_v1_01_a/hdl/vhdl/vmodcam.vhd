@@ -582,7 +582,7 @@ begin
     );
 
 	
-	external_reset_user_logic <= RESET_I & ENABLE;
+	external_reset_user_logic <= RESET_I and ENABLE;
   ------------------------------------------
   -- instantiate User Logic
   ------------------------------------------
