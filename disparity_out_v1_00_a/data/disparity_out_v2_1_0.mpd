@@ -114,5 +114,6 @@ PORT RESET_I = "", DIR = I
 PORT DISP_EN = "", DIR = I
 PORT SW_I = "", DIR = I, VEC = [7:0]
 PORT LED_O = "", DIR = O, VEC = [7:0]
+PORT ASYNC_RESET = "", DIR = I
 
 END
