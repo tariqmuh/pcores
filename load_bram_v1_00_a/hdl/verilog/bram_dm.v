@@ -67,27 +67,14 @@ parameter TOTAL_NUM_ROWS = VRES - 6;
 parameter TOTAL_NUM_COLS = HRES - 6;
 /***************************/
 
-parameter window_half = window/2;
-
-//reg [8:0] ref_window [0:49];
-//integer i;
-//initial begin
-//	
-// 	for (i = 0; i < 49; i = i +1) begin
-//  	  	//$display ("Current value of i is %d", i);
-//		ref_window [i] = i;
-//  	end
-//end
+//parameter window_half = window/2;
+parameter window_half = 3;
+parameter pixels_in_window = window * window;
 
 reg [2:0] curr_state;
 reg [2:0] next_state;
 reg [2:0] saved_state;
 
-//wire [31 : 0] addrb;
-
-//wire [31 : 0] dout_search;
-//wire [2:0] window;
-//assign window = 3'b011;
 reg [BRAM_ADDR_WIDTH - 1 : 0] start_addr;
 
 reg [11 : 0] comp_p_row;
@@ -101,7 +88,6 @@ reg [6 : 0] address_win_count; // number of total window addresses calculated
 reg [5 : 0] win_row_index; // number of each row index in a window
 reg [5 : 0] win_col_index; // number of each column index in a window
 reg [6 : 0] win_count; // number of total windows calculated
-//reg [11 : 0] total_num_of_pix;
 
 reg [11 : 0] window_sum;
 
@@ -111,29 +97,9 @@ reg [5 : 0] lowest_disp_index;
 reg [31 : 0] grayscale_pixels;
 reg grayscale_fifo_wr_sel;
 
-//wire [2:0] window_half;
-wire [5 : 0] pixels_in_window;
-
-//assign window_half = window >> 1; 
-assign pixels_in_window = window * window;
-
-//reg finished_row;
-
 wire busy;
 
 assign busy = busy_ref | busy_search;
-
-//reg [3 : 0] we_search;
-
-//reg en_search;
-//wire rst_fifo, wr_clk_fifo, rd_clk_fifo, rd_en_fifo, full_fifo, empty_fifo;
-//output reg wr_en_fifo;
-//wire [31 : 0] din_fifo;
-//wire [31 : 0] dout_fifo;
-//wire [5 : 0] rd_data_count_fifo;
-
-//assign done = finished_row;
-
 
 always @(*)
 begin : FSM
@@ -211,6 +177,10 @@ begin : FSM
 	endcase
 end
 
+assign addr_search = start_addr;
+
+assign din_fifo = grayscale_pixels;
+
 always @(posedge clk)
 begin
 	if (reset) begin
@@ -222,7 +192,6 @@ begin
 		win_row_index 				<= 0;
 		win_col_index 				<= 0; 
 		win_count 					<= 0; 
-//		total_num_of_pix 			<= 0;
 		window_sum 					<= 0;
 		lowest_disp 				<= 12'hFFF; // highest value
 		lowest_disp_index			<= 63;		// highest value
@@ -250,7 +219,6 @@ begin
 		win_row_index 				<= win_row_index;
 		win_col_index 				<= win_col_index; 
 		win_count 					<= win_count; 
-//		total_num_of_pix 			<= total_num_of_pix;
 		window_sum 					<= window_sum;
 		lowest_disp 				<= lowest_disp;
 		lowest_disp_index			<= lowest_disp_index;
@@ -375,17 +343,8 @@ begin
 					grayscale_pixels [20:16] <= #2 lowest_disp_index [5:1];
 				end
 				
-				
-//				win_col_index <= #2 1;
-//				en_search <= #2 1;
-//				en_ref <= #2 1;
-//				
-//				start_addr <= #2 ((comp_p_row - (window_half - win_row_index)) % NUM_OF_ROWS_IN_BRAM) * HRES + (comp_p_col - address_win_count - (window_half - win_col_index));
-//				addr_ref <= #2 ((comp_p_row - (window_half - win_row_index)) % NUM_OF_ROWS_IN_BRAM) * HRES + (comp_p_col - (window_half - win_col_index));
-//				
 				// Increase total_num_pix calculated
 				// Reset variables: window_sum, counter,  
-				//total_num_of_pix 		<= #2 total_num_of_pix + 1'b1;
 				window_sum 				<= #2 0;
 				counter 					<= #2 0;
 				win_count 				<= #2 0;
@@ -407,7 +366,6 @@ begin
 						win_row_index 				<= 0;
 						win_col_index 				<= 0; 
 						win_count 					<= 0; 
-				//		total_num_of_pix 			<= 0;
 						window_sum 					<= 0;
 						lowest_disp 				<= 12'hFFF; // highest value
 						lowest_disp_index			<= 63;		// highest value
@@ -450,26 +408,5 @@ begin
 		endcase
 	end
 end 
-
-assign addr_search = start_addr;
-
-//assign rst_fifo = reset;
-
-assign din_fifo = grayscale_pixels;
-
-//assign wr_clk_fifo = clk;
-
-//grayscale_pixel_FIFO grascale_fifo (
-//  .rst(rst_fifo), // input rst
-//  .wr_clk(wr_clk_fifo), // input wr_clk
-//  .rd_clk(rd_clk_fifo), // input rd_clk
-//  .din(din_fifo), // input [31 : 0] din
-//  .wr_en(wr_en_fifo), // input wr_en
-//  .rd_en(rd_en_fifo), // input rd_en
-//  .dout(dout_fifo), // output [31 : 0] dout
-//  .full(full_fifo), // output full
-//  .empty(empty_fifo), // output empty
-//  .rd_data_count(rd_data_count_fifo) // output [5 : 0] rd_data_count
-//);
 
 endmodule
